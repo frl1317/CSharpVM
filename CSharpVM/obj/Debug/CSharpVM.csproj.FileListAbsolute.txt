@@ -1,0 +1,11 @@
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe.config
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\CSharpVM.pdb
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.dll
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.Mdb.dll
+D:\IL学习\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.Pdb.dll
+D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csprojAssemblyReference.cache
+D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CoreCompileInputs.cache
+D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CopyComplete
+D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.exe
+D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.pdb
