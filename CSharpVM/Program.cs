@@ -15,7 +15,9 @@ namespace CSharpVM
         static MethodDefinition simulationMethodDef;
         static void Main(string[] args)
         {
-            string path = @"D:\IL学习\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe";
+            CSharpVM vm = new CSharpVM();
+
+            string path = @"D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe";
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 byte[] buffur = new byte[fs.Length];
@@ -26,6 +28,8 @@ namespace CSharpVM
                 var module = assemblyDef.MainModule;
                 if (module.HasTypes)
                 {
+                    vm.ImportModule(module);
+
                     foreach (TypeDefinition typeDef in module.GetTypes()) //获取所有此模块定义的类型
                     {
                         System.Console.WriteLine(typeDef.FullName);
@@ -57,10 +61,8 @@ namespace CSharpVM
                          */
                         }
                     }
-
-                    VM vm = new VM();
                     System.Console.WriteLine("IL代码运算----------");
-                    System.Console.WriteLine(vm.Execute(simulationMethodDef));
+                    System.Console.WriteLine(vm.RunInterpreter(simulationMethodDef));
                     System.Console.WriteLine("IL代码运算结束----------");
                     System.Console.WriteLine("");
                     System.Console.WriteLine("");
@@ -108,7 +110,45 @@ namespace CSharpVM
             }
 
             System.Console.WriteLine("最终结果" + c);
+
+            Student student = new Student();
+            student.Name = "张三";
+            student.Age = 18;
+            student.Print();
+
+            c += student.GetAge();
+            c = TestWhile(c);
+            System.Console.WriteLine("最终结果" + c);
             return c;
+        }
+
+        public static int TestWhile(int v)
+        {
+            v += 1;
+            if(v < 10000)
+            {
+                return TestWhile(v);
+            }
+            else
+            {
+                return v;
+            }
+        }
+    }
+
+    public class Student
+    {
+        public string Name;
+        public int Age;
+
+        public void Print()
+        {
+            System.Console.WriteLine("学生:" + Name + " 年龄:" + Age);
+        }
+
+        public int GetAge()
+        {
+            return Age;
         }
     }
 }

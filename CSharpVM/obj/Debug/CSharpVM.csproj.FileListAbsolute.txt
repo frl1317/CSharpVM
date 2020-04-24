@@ -9,3 +9,14 @@ D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CoreCompileInputs.cache
 D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CopyComplete
 D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.exe
 D:\IL学习\CSharpVM\CSharpVM\obj\Debug\CSharpVM.pdb
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe.config
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.pdb
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.dll
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.Mdb.dll
+D:\GitHub\CSharpVM\CSharpVM\bin\Debug\Mono.Cecil.Pdb.dll
+D:\GitHub\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csprojAssemblyReference.cache
+D:\GitHub\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CoreCompileInputs.cache
+D:\GitHub\CSharpVM\CSharpVM\obj\Debug\CSharpVM.csproj.CopyComplete
+D:\GitHub\CSharpVM\CSharpVM\obj\Debug\CSharpVM.exe
+D:\GitHub\CSharpVM\CSharpVM\obj\Debug\CSharpVM.pdb

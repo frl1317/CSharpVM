@@ -10,15 +10,24 @@ using System.Threading.Tasks;
 
 namespace CSharpVM
 {
-    class VM
+    class CSharpVM
     {
         const int MAX_STACK = 256;
         private int stackSize = 0;
         private object[] stack = new object[MAX_STACK];
 
-        public VM()
+        //所有模块的集合
+        List<ModuleDefinition> modules;
+
+        public CSharpVM()
         {
             stackSize = 0;
+            modules = new List<ModuleDefinition>();
+        }
+
+        public void ImportModule(ModuleDefinition moduleDef)
+        {
+            modules.Add(moduleDef);
         }
 
         Dictionary<string, MethodDefinition> methodDefDic = new Dictionary<string, MethodDefinition>();
@@ -28,6 +37,7 @@ namespace CSharpVM
             System.Diagnostics.Debug.Assert(stackSize < MAX_STACK);
             stack[stackSize++] = value;
         }
+
         private object Pop()
         {
             System.Diagnostics.Debug.Assert(stackSize > 0);
@@ -61,7 +71,7 @@ namespace CSharpVM
         //临时变量
         object[] localVar = new object[50];
 
-        public object Execute(MethodDefinition methodDef)
+        public object RunInterpreter(MethodDefinition methodDef)
         {
             Instruction instruction = methodDef.Body.Instructions[0];
             while (instruction != null)
@@ -81,6 +91,7 @@ namespace CSharpVM
                         break;
                     case Code.Ldc_I4_S:
                         //将提供的 int8 值作为 int32 推送到计算堆栈上（短格式）。
+                        VValue vValue = new VValue();
                         Push(instruction.Operand);
                         break;
                     case Code.Ldc_I4_0:
@@ -364,26 +375,31 @@ namespace CSharpVM
                     case Code.Call:
                         {
                             MethodReference methodReference = (MethodReference)instruction.Operand;
-                           /*
-                             MethodDefinition methDef;
-                            methodDefDic.TryGetValue(methodReference.DeclaringType.FullName, out methDef);
-                            if(methDef != null)
-                            {
-                                Execute
-                            }
-                             */
-                            Type t = Type.GetType(methodReference.DeclaringType.FullName);
+                            /*
+                              MethodDefinition methDef;
+                             methodDefDic.TryGetValue(methodReference.DeclaringType.FullName, out methDef);
+                             if(methDef != null)
+                             {
+                                 Execute
+                             }
+                              */
 #if true
-                            //方式一 直接通过制定参数查找
-                            Type[] types = new Type[methodReference.Parameters.Count];
+                           //方式一 直接通过制定参数查找
+                           Type[] types = new Type[methodReference.Parameters.Count];
                             object[] values = new object[methodReference.Parameters.Count];
                             for (int i = methodReference.Parameters.Count-1; i  >= 0; i--)
                             {
-                                types[i] = methodReference.Parameters[i].GetType();
                                 values[i] = Pop();
+                                types[i] = values[i].GetType();
                             }
+
+                            Type t = Type.GetType(methodReference.DeclaringType.FullName);
                             var methodInfo = t.GetMethod(methodReference.Name, types);
-                            object res = methodInfo.Invoke(null, values);
+                            object res;
+                            if (methodInfo.IsStatic)
+                                res = methodInfo.Invoke(null, values);
+                            else
+                                res = methodInfo.Invoke(t, values);
                             if (res != null)
                                 Push(res);
 #else
@@ -409,12 +425,64 @@ namespace CSharpVM
                             //AppDomain.CurrentDomain.CreateInstance（a.FullName，Test2.Class1）;
                         }
                         break;
+                    case Code.Newobj:
+                        {
+                            MethodReference methodReference = (MethodReference)instruction.Operand;
+                            //方式一 直接通过制定参数查找
+                            Type[] types = new Type[methodReference.Parameters.Count];
+                            object[] values = new object[methodReference.Parameters.Count];
+                            for (int i = methodReference.Parameters.Count - 1; i >= 0; i--)
+                            {
+                                values[i] = Pop();
+                                types[i] = values[i].GetType();
+                            }
+
+                            Type t = Type.GetType(methodReference.DeclaringType.FullName);
+                            object inst = t.Assembly.CreateInstance(t.FullName);
+                            Push(inst);
+                        }
+                        break;
+                    case Code.Stfld:
+                        {
+                            object newData = Pop();
+                            object obj = Pop();
+                            FieldDefinition fieldDefinition = (FieldDefinition)instruction.Operand;
+                            FieldInfo fieldInfo =  obj.GetType().GetField(fieldDefinition.Name);
+                            fieldInfo.SetValue(obj, newData);
+                        }
+                        break;
+                    case Code.Callvirt:
+                        {
+                            //对对象调用后期绑定方法，并且将返回值推送到计算堆栈上。
+                            object obj = Pop();
+
+                            MethodReference methodReference = (MethodReference)instruction.Operand;
+                            Type[] types = new Type[methodReference.Parameters.Count];
+                            object[] values = new object[methodReference.Parameters.Count];
+                            for (int i = methodReference.Parameters.Count - 1; i >= 0; i--)
+                            {
+                                values[i] = Pop();
+                                types[i] = values[i].GetType();
+                            }
+
+                            var methodInfo = obj.GetType().GetMethod(methodReference.Name, types);
+                            object res = methodInfo.Invoke(obj, values);
+                            if (res != null)
+                                Push(res);
+                        }
+                        break;
                     default:
                         throw new NotSupportedException("Not supported opcode " + code);
                 }
                 instruction = instruction.Next;
             }
             return null;
+        }
+
+        public object CreateInstance(string fullName)
+        {
+            Type t = Type.GetType(fullName);
+            return t.Assembly.CreateInstance(t.FullName);
         }
     }
 }
