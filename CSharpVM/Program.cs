@@ -18,6 +18,8 @@ namespace CSharpVM
             CSharpVM vm = new CSharpVM();
 
             string path = @"D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe";
+            vm.Load(path);
+
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 byte[] buffur = new byte[fs.Length];
@@ -111,8 +113,8 @@ namespace CSharpVM
 
             System.Console.WriteLine("最终结果" + c);
 
-            Student student = new Student();
-            student.Name = "张三";
+            Student student = new Student("张三");
+            student.Name = "李四";
             student.Age = 18;
             student.Print();
 
@@ -140,6 +142,11 @@ namespace CSharpVM
     {
         public string Name;
         public int Age;
+
+        public Student(string name)
+        {
+            Name = name;
+        }
 
         public void Print()
         {

@@ -15,7 +15,8 @@ namespace CSharpVM
         const int MAX_STACK = 256;
         private int stackSize = 0;
         private object[] stack = new object[MAX_STACK];
-
+        private CVMStackFrame[] stacks = new CVMStackFrame[MAX_STACK];
+        Dictionary<string, CVMObject> templateClasses = new Dictionary<string, CVMObject>();
         //所有模块的集合
         List<ModuleDefinition> modules;
 
@@ -30,6 +31,7 @@ namespace CSharpVM
             modules.Add(moduleDef);
         }
 
+        //所有动态函数集合
         Dictionary<string, MethodDefinition> methodDefDic = new Dictionary<string, MethodDefinition>();
 
         private void Push(object value)
@@ -44,25 +46,21 @@ namespace CSharpVM
             return stack[--stackSize];
         }
 
-        public void Load(string path)
+        public void Load(string dllPath)
         {
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+            using (FileStream fs = new FileStream(dllPath, FileMode.Open, FileAccess.Read))
             {
                 byte[] buffur = new byte[fs.Length];
                 fs.Read(buffur, 0, (int)fs.Length);
                 //通过Mono.Cecil读取dll的pe信息
-                AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(path, new ReaderParameters { ReadSymbols = true });
+                AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters { ReadSymbols = true });
                 var module = assemblyDef.MainModule;
                 if (module.HasTypes)
                 {
                     foreach (TypeDefinition typeDef in module.GetTypes()) //获取所有此模块定义的类型
                     {
-                        System.Console.WriteLine(typeDef.FullName);
-
-                        foreach (MethodDefinition methodDef in typeDef.Methods)
-                        {
-                            methodDefDic.Add(methodDef.FullName, methodDef);
-                        }
+                        CVMObject obj = new CVMObject(typeDef);
+                        templateClasses.Add(obj.Name, obj);
                     }
                 }
             }
@@ -91,7 +89,6 @@ namespace CSharpVM
                         break;
                     case Code.Ldc_I4_S:
                         //将提供的 int8 值作为 int32 推送到计算堆栈上（短格式）。
-                        VValue vValue = new VValue();
                         Push(instruction.Operand);
                         break;
                     case Code.Ldc_I4_0:
@@ -327,9 +324,7 @@ namespace CSharpVM
                     case Code.Ret:
                         //从当前方法返回，并将返回值（如果存在）从调用方的计算堆栈推送到被调用方的计算堆栈上。
                         TypeReference returnType = methodDef.ReturnType;
-                        if (returnType.Name != Type.GetType("System.Void").Name)
-                            return Pop();
-                        break;
+                        return Pop();
                     case Code.Beq:
                     case Code.Beq_S:
                         {
@@ -374,71 +369,69 @@ namespace CSharpVM
                         break;
                     case Code.Call:
                         {
-                            MethodReference methodReference = (MethodReference)instruction.Operand;
+                            MethodReference methodRef = (MethodReference)instruction.Operand;
                             /*
                               MethodDefinition methDef;
-                             methodDefDic.TryGetValue(methodReference.DeclaringType.FullName, out methDef);
+                             methodDefDic.TryGetValue(methodRef.DeclaringType.FullName, out methDef);
                              if(methDef != null)
                              {
                                  Execute
                              }
                               */
-#if true
                            //方式一 直接通过制定参数查找
-                           Type[] types = new Type[methodReference.Parameters.Count];
-                            object[] values = new object[methodReference.Parameters.Count];
-                            for (int i = methodReference.Parameters.Count-1; i  >= 0; i--)
+                           Type[] types = new Type[methodRef.Parameters.Count];
+                            object[] values = new object[methodRef.Parameters.Count];
+                            for (int i = methodRef.Parameters.Count-1; i  >= 0; i--)
                             {
                                 values[i] = Pop();
                                 types[i] = values[i].GetType();
                             }
 
-                            Type t = Type.GetType(methodReference.DeclaringType.FullName);
-                            var methodInfo = t.GetMethod(methodReference.Name, types);
+                            Type t = Type.GetType(methodRef.DeclaringType.FullName);
+                            var methodInfo = t.GetMethod(methodRef.Name, types);
                             object res;
                             if (methodInfo.IsStatic)
                                 res = methodInfo.Invoke(null, values);
                             else
                                 res = methodInfo.Invoke(t, values);
-                            if (res != null)
-                                Push(res);
-#else
-
-                        //方式二， 遍历函数，通过参数对比
-                        List<object> param = new List<object>();
-                        for(int i = 0; i < methodReference.Parameters.Count; i++)
-                        {
-                            param.Add(Pop());
-                        }
-                        
-                        foreach (var methodDef in t.GetMethods())
-                        {
-                            if(methodDef.GetParameters().Length == methodReference.Parameters.Count
-                                && methodDef.Name == methodReference.Name
-                                && methodDef.GetParameters()[0].ParameterType == typeof(string))
-                            {
-                                methodDef.Invoke(null, param.ToArray());
-                            }
-                        }
-#endif
-
-                            //AppDomain.CurrentDomain.CreateInstance（a.FullName，Test2.Class1）;
+                            Push(res);
                         }
                         break;
-                    case Code.Newobj:
+                    case Code.Callvirt:
                         {
-                            MethodReference methodReference = (MethodReference)instruction.Operand;
-                            //方式一 直接通过制定参数查找
-                            Type[] types = new Type[methodReference.Parameters.Count];
-                            object[] values = new object[methodReference.Parameters.Count];
-                            for (int i = methodReference.Parameters.Count - 1; i >= 0; i--)
+                            //对对象调用后期绑定方法，并且将返回值推送到计算堆栈上。
+                            object obj = Pop();
+
+                            MethodReference methodRef = (MethodReference)instruction.Operand;
+                            Type[] types = new Type[methodRef.Parameters.Count];
+                            object[] values = new object[methodRef.Parameters.Count];
+                            for (int i = methodRef.Parameters.Count - 1; i >= 0; i--)
                             {
                                 values[i] = Pop();
                                 types[i] = values[i].GetType();
                             }
 
-                            Type t = Type.GetType(methodReference.DeclaringType.FullName);
-                            object inst = t.Assembly.CreateInstance(t.FullName);
+                            var methodInfo = obj.GetType().GetMethod(methodRef.Name, types);
+                            object res = methodInfo.Invoke(obj, values);
+                            Push(res);
+                        }
+                        break;
+                    case Code.Newobj:
+                        {
+                            //构造函数
+                            MethodReference methodRef = (MethodReference)instruction.Operand;
+                            
+                            Type[] types = new Type[methodRef.Parameters.Count];
+                            object[] values = new object[methodRef.Parameters.Count];
+                            for (int i = methodRef.Parameters.Count - 1; i >= 0; i--)
+                            {
+                                values[i] = Pop();
+                                types[i] = values[i].GetType();
+                            }
+
+                            Type t = Type.GetType(methodRef.DeclaringType.FullName);
+                            //object inst = t.Activator.CreateInstance(t.FullName);
+                            object inst = System.Activator.CreateInstance(t, values);
                             Push(inst);
                         }
                         break;
@@ -449,26 +442,6 @@ namespace CSharpVM
                             FieldDefinition fieldDefinition = (FieldDefinition)instruction.Operand;
                             FieldInfo fieldInfo =  obj.GetType().GetField(fieldDefinition.Name);
                             fieldInfo.SetValue(obj, newData);
-                        }
-                        break;
-                    case Code.Callvirt:
-                        {
-                            //对对象调用后期绑定方法，并且将返回值推送到计算堆栈上。
-                            object obj = Pop();
-
-                            MethodReference methodReference = (MethodReference)instruction.Operand;
-                            Type[] types = new Type[methodReference.Parameters.Count];
-                            object[] values = new object[methodReference.Parameters.Count];
-                            for (int i = methodReference.Parameters.Count - 1; i >= 0; i--)
-                            {
-                                values[i] = Pop();
-                                types[i] = values[i].GetType();
-                            }
-
-                            var methodInfo = obj.GetType().GetMethod(methodReference.Name, types);
-                            object res = methodInfo.Invoke(obj, values);
-                            if (res != null)
-                                Push(res);
                         }
                         break;
                     default:
