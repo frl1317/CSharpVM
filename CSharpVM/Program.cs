@@ -16,8 +16,9 @@ namespace CSharpVM
         static void Main(string[] args)
         {
             CSharpVM vm = new CSharpVM();
-
             string path = @"D:\GitHub\CSharpVM\CSharpVM\bin\Debug\CSharpVM.exe";
+            vm.Load(path);
+
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 byte[] buffur = new byte[fs.Length];
@@ -28,18 +29,14 @@ namespace CSharpVM
                 var module = assemblyDef.MainModule;
                 if (module.HasTypes)
                 {
-                    vm.ImportModule(module);
-
                     foreach (TypeDefinition typeDef in module.GetTypes()) //获取所有此模块定义的类型
                     {
-                        System.Console.WriteLine(typeDef.FullName);
+                        //System.Console.WriteLine(typeDef.FullName);
 
                         foreach (MethodDefinition methodDef in typeDef.Methods)
                         {
-                            Console.WriteLine("IsGenericInstance:" + methodDef.IsGenericInstance.ToString());
-                            Console.WriteLine("MetadataToken:" + methodDef.MetadataToken);
-                            System.Console.WriteLine(typeDef.FullName + "----" + methodDef);
-                            if(methodDef.Name == "Test")
+                            //System.Console.WriteLine(typeDef.FullName + "----" + methodDef);
+                            if(methodDef.Name == "TestFunc")
                             {
                                 simulationMethodDef = methodDef;
                                 foreach (Instruction v in methodDef.Body.Instructions)//Instructions
@@ -81,6 +78,7 @@ namespace CSharpVM
         {
             return a + b;
         }
+
         static public float Test()
         {
             long a = 300000L;
@@ -111,15 +109,21 @@ namespace CSharpVM
 
             System.Console.WriteLine("最终结果" + c);
 
-            Student student = new Student();
-            student.Name = "张三";
+            Student student = new Student("张三");
+            student.Name = "李四";
             student.Age = 18;
-            student.Print();
+            //student.AgeAdd();
 
             c += student.GetAge();
             c = TestWhile(c);
             System.Console.WriteLine("最终结果" + c);
             return c;
+        }
+
+        public static void TestFunc()
+        {
+            float c = Add(5.2f, 6f);
+            System.Console.WriteLine("最终结果" + c);
         }
 
         public static int TestWhile(int v)
@@ -141,14 +145,28 @@ namespace CSharpVM
         public string Name;
         public int Age;
 
+        public Student(string name)
+        {
+            Name = name;
+        }
+
         public void Print()
         {
             System.Console.WriteLine("学生:" + Name + " 年龄:" + Age);
         }
+        public void AgeAdd()
+        {
+            Age += 20;
+        }
+
 
         public int GetAge()
         {
             return Age;
         }
+    }
+    public class Teacher
+    {
+        public Student student;
     }
 }
